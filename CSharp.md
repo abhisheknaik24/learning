@@ -17,6 +17,14 @@
 11. [Modern C# features](#11-modern-c-features)
 12. [Design, safety, and testing](#12-design-safety-and-testing)
 13. [Common coding and output questions](#13-common-coding-and-output-questions)
+14. [Advanced questions: types and runtime semantics](#14-advanced-questions-121-170-types-and-runtime-semantics)
+15. [Advanced questions: language features](#15-advanced-questions-171-220-language-features)
+16. [Advanced questions: design and generics](#16-advanced-questions-221-270-design-and-generics)
+17. [Advanced questions: collections and LINQ](#17-advanced-questions-271-320-collections-and-linq)
+18. [Advanced questions: async and concurrency](#18-advanced-questions-321-370-async-and-concurrency)
+19. [Advanced questions: runtime and performance](#19-advanced-questions-371-420-runtime-and-performance)
+20. [Advanced questions: interop and security](#20-advanced-questions-421-460-interop-and-security)
+21. [Advanced questions: testing and scenarios](#21-advanced-questions-461-500-testing-and-scenarios)
 
 ## 1. Language and compilation
 
@@ -870,6 +878,1542 @@ static async Task<string> DownloadAsync(
 ```
 
 Cancellation is cooperative; it communicates a request and does not forcibly stop arbitrary code.
+
+## 14. Advanced Questions (121-170): Types and Runtime Semantics
+
+### 121. What is the difference between `struct` and `class` allocation?
+
+Structs are value types and may be stored inline or boxed; classes are reference types. Actual physical placement is an implementation detail, not a dependable stack-versus-heap rule.
+
+### 122. What is a readonly struct?
+
+A `readonly struct` promises that instance state cannot be mutated through its members, helping express value semantics and avoid defensive copies in some cases.
+
+### 123. What is a ref readonly parameter?
+
+It passes a readonly reference to a value, avoiding a copy while disallowing mutation through the parameter; exact syntax depends on language version.
+
+### 124. What is a `ref` return?
+
+A method can return an alias to existing storage with `ref`, allowing callers to read or modify that storage; lifetime and escape rules are enforced by the compiler.
+
+### 125. What is a `ref local`?
+
+It declares a local alias to a variable returned by reference, rather than copying its value.
+
+### 126. What is a ref safety rule?
+
+It prevents references to shorter-lived storage from escaping into a longer-lived context where they could become invalid.
+
+### 127. What does `scoped` mean?
+
+In supported language versions, `scoped` restricts a ref-like value's escape scope, making lifetime intent explicit.
+
+### 128. What is a `ref struct` restriction?
+
+It cannot be boxed or stored in ordinary heap fields, and historically cannot cross async/yield boundaries; newer language versions relax selected contexts under safety rules.
+
+### 129. What is boxing of a struct implementing an interface?
+
+Converting the struct to an interface reference usually boxes a copy unless constrained generic dispatch or another optimization avoids it.
+
+### 130. What is constrained virtual dispatch?
+
+Generic code with a value-type type parameter can use a `constrained.` call to invoke interface or virtual members without necessarily boxing.
+
+### 131. What is a nullable value type representation?
+
+`Nullable<T>` represents either no value or a value of `T`; its runtime representation is specialized and is not simply a heap wrapper.
+
+### 132. What does lifted operator behavior mean?
+
+An operator on a non-nullable value type can have a nullable form whose result propagates null according to the operator's rules.
+
+### 133. What is a checked context?
+
+It requests overflow checking for certain integral arithmetic and conversions, throwing `OverflowException` on overflow.
+
+### 134. What is an unchecked context?
+
+It permits unchecked integral overflow behavior, typically wrapping, for operations covered by the language rules.
+
+### 135. Does checked arithmetic apply to floating point?
+
+Ordinary floating-point overflow follows IEEE behavior and typically produces infinity rather than `OverflowException`.
+
+### 136. What is definite assignment?
+
+The compiler's analysis ensures a local variable has been assigned on every control-flow path before it is read.
+
+### 137. What is definite null-state analysis?
+
+Nullable analysis tracks whether references may be null across control flow and reports warnings when declared contracts may be violated.
+
+### 138. What does the null-forgiving operator do?
+
+`!` suppresses a nullable warning at that expression but performs no runtime check or conversion.
+
+### 139. What is a nullable annotation context?
+
+It controls whether nullable reference annotations and flow warnings are active for source files or project regions.
+
+### 140. What is `default(T)`?
+
+It yields the default value for a type parameter or type: zero-like values for many value types and null for reference types.
+
+### 141. What is `default` literal inference?
+
+The `default` literal takes its type from the target context, avoiding an explicit generic type argument.
+
+### 142. What is `typeof`?
+
+It obtains a `System.Type` object for a compile-time type, including types that cannot be named through a runtime instance.
+
+### 143. What is `GetType()`?
+
+It returns the runtime type of an object instance and cannot be called on a null reference.
+
+### 144. What is the difference between `is` and `as`?
+
+`is` tests type compatibility and can bind a typed variable; `as` attempts a reference/nullable conversion and returns null on failure.
+
+### 145. What is pattern matching's type pattern?
+
+It checks whether an expression is compatible with a type and can bind the converted value.
+
+### 146. What is a nullable boxing conversion?
+
+Boxing a nullable value with a value boxes the underlying value; boxing an empty nullable produces null.
+
+### 147. How does equality work for floating-point NaN?
+
+IEEE-style comparisons make `NaN == NaN` false; use `double.IsNaN` or `float.IsNaN` to test it.
+
+### 148. What is string interning's equality implication?
+
+Interning may cause identical literals to share references, but string value equality should use string equality rather than depend on reference identity.
+
+### 149. What is a tuple's runtime type?
+
+Value tuples are generic `System.ValueTuple` structs; tuple element names are compile-time metadata and do not create distinct runtime types.
+
+### 150. What is a `dynamic` call site?
+
+The compiler emits runtime binder machinery that resolves dynamic operations based on runtime values and caches binding rules.
+
+### 151. What is `object` equality's default?
+
+`object.Equals` defaults to reference identity unless a type overrides it; value types receive value-based behavior through generated/runtime implementations.
+
+### 152. Why must `GetHashCode` match `Equals`?
+
+Hash-based collections first group by hash; equal values must have equal hashes or lookups can fail.
+
+### 153. Can unequal objects have the same hash code?
+
+Yes. Collisions are allowed; equality comparison distinguishes values within a hash bucket.
+
+### 154. What is a comparer?
+
+An `IComparer<T>` defines ordering; an `IEqualityComparer<T>` defines equality and hashing for collection operations.
+
+### 155. What is culture-sensitive string comparison?
+
+It compares text according to linguistic rules; use ordinal comparison for programmatic identifiers and culture-aware comparison for user-facing text.
+
+### 156. What is Unicode normalization?
+
+It canonicalizes equivalent Unicode sequences into a selected normalization form; visual equivalence does not guarantee identical code-point sequences.
+
+### 157. What is a `char`?
+
+It is a 16-bit UTF-16 code unit, not necessarily a complete Unicode scalar value or user-perceived character.
+
+### 158. What is a `Rune`?
+
+`System.Text.Rune` represents a Unicode scalar value, avoiding assumptions that one UTF-16 code unit equals one character.
+
+### 159. What is the difference between UTF-8 and UTF-16 in .NET?
+
+They encode Unicode using different code-unit sizes; UTF-8 is common for interchange, while .NET strings use UTF-16 code units.
+
+### 160. What is a surrogate pair?
+
+It is two UTF-16 code units representing one Unicode scalar value above the Basic Multilingual Plane.
+
+### 161. What is a `Span<T>` lifetime?
+
+It is restricted to a safe stack-bounded lifetime and cannot outlive the memory it references.
+
+### 162. What is `Memory<T>`?
+
+It is a heap-storable memory region abstraction that can cross async boundaries, unlike `Span<T>`.
+
+### 163. What is `ReadOnlyMemory<T>`?
+
+It exposes a memory region without mutation through that view; it does not guarantee the underlying storage is immutable elsewhere.
+
+### 164. What is `MemoryMarshal`?
+
+It provides low-level operations for reinterpreting or accessing memory representations; incorrect use can violate safety assumptions.
+
+### 165. What is `Unsafe` code?
+
+It permits pointer operations and other low-level behavior under an unsafe context, transferring memory-safety responsibility to the programmer.
+
+### 166. What is a fixed statement?
+
+`fixed` pins a movable managed object for a limited scope so its address can be used by unsafe code.
+
+### 167. What is pinning?
+
+Pinning prevents the GC from relocating an object temporarily; excessive or long-lived pinning can fragment the managed heap.
+
+### 168. What is a `GCHandle`?
+
+It creates a managed handle with specified lifetime behavior, including pinning when required for native interop.
+
+### 169. What is a finalization queue?
+
+It holds finalizable objects for finalizer processing before their memory can be reclaimed.
+
+### 170. What is resurrection?
+
+A finalizer can make an object reachable again, but resurrection complicates lifetime and is generally discouraged.
+
+## 15. Advanced Questions (171-220): Language Features
+
+### 171. What is a primary constructor?
+
+It declares constructor parameters in a type declaration, with availability and capture semantics varying by type kind and C# version.
+
+### 172. What is a static abstract interface member?
+
+It declares a static member contract that implementing types must provide, enabling generic algorithms over type-level operations.
+
+### 173. What is a generic math interface?
+
+It is a .NET interface family for numeric operations that lets constrained generic code perform arithmetic for compatible types.
+
+### 174. What are required members?
+
+They require object creation sites to initialize designated members, with compile-time checks subject to language rules.
+
+### 175. What is the `SetsRequiredMembers` attribute?
+
+It tells the compiler a constructor initializes required members, placing responsibility on the constructor author to honor that claim.
+
+### 176. What is a `with` expression?
+
+It creates a shallow copy with selected properties or fields initialized to new values for records and supported types.
+
+### 177. What is a record's equality contract?
+
+Records generate value-oriented equality from relevant members and type identity rules; customization must preserve symmetry and hashing.
+
+### 178. What is a record's copy constructor?
+
+It supports cloning record instances for `with` expressions, and can be customized for record classes under language rules.
+
+### 179. What is a positional record?
+
+It declares primary constructor parameters that generate properties and deconstruction support.
+
+### 180. What is a `with` expression on a record struct?
+
+It copies the value and applies selected init-settable member changes to the copy.
+
+### 181. What is a collection expression?
+
+It is bracket syntax that constructs a target-compatible collection using collection builder or supported construction rules.
+
+### 182. What is a collection expression spread element?
+
+The `..` element spreads items from another enumerable or collection into a collection expression.
+
+### 183. What is a collection builder?
+
+It allows a type to define construction from a span-like input for collection-expression support.
+
+### 184. What are list patterns?
+
+They match elements of list-like inputs by positions and optionally a slice, where the type supports the required pattern shape.
+
+### 185. What is a slice pattern?
+
+It matches the remaining portion of a sequence in a list pattern, often using `..`.
+
+### 186. What are raw string literals?
+
+They use multiple quote delimiters to represent text with fewer escape sequences and preserve multiline content.
+
+### 187. What is interpolated raw string indentation?
+
+The closing delimiter determines indentation trimming for multiline content; incorrect placement can change literal whitespace.
+
+### 188. What are interpolated string handlers?
+
+They let a target type customize how interpolated strings are constructed, potentially avoiding allocations or skipped formatting work.
+
+### 189. What is a caller information attribute?
+
+It lets optional parameters receive compiler-supplied call-site details such as file, line, member, or expression text.
+
+### 190. What does `CallerArgumentExpression` provide?
+
+It captures source text of an argument expression for diagnostics, useful in guard and assertion APIs.
+
+### 191. What is a file-local type?
+
+It restricts a type's visibility to one source file, reducing naming collisions for generated or implementation-specific helpers.
+
+### 192. What is a global using?
+
+It imports a namespace or alias across all source files in a compilation.
+
+### 193. What is an extern alias?
+
+It distinguishes types from assemblies containing conflicting fully qualified names.
+
+### 194. What is an alias directive?
+
+It assigns a shorter or disambiguating name to a namespace or type.
+
+### 195. What is a top-level statement restriction?
+
+Only one compilation unit may contain top-level statements for an executable entry point, and they must precede namespace/type declarations.
+
+### 196. What is a module initializer?
+
+It is a method marked to execute during module initialization; use sparingly because it introduces implicit startup work.
+
+### 197. What is a global namespace alias?
+
+`global::` starts name resolution at the global namespace to avoid conflicts with local names.
+
+### 198. What is a `nameof` expression?
+
+It produces a compile-time identifier string and remains correct when the referenced symbol is renamed.
+
+### 199. What is a `using` alias?
+
+It gives a namespace or type a local alias, often to resolve ambiguity or simplify long names.
+
+### 200. What is a file-scoped namespace?
+
+It declares one namespace for the remainder of a file using a concise syntax.
+
+### 201. What is a global namespace?
+
+It is the root namespace containing names not nested inside another namespace.
+
+### 202. What is an extern method?
+
+It declares a method implemented outside managed C# code, commonly through platform invocation.
+
+### 203. What is a partial method?
+
+It allows declarations and implementations to be split across partial type parts; modern versions support broader accessibility and return types.
+
+### 204. What is a default interface implementation?
+
+It supplies an interface member body that implementing types may inherit, enabling some contract evolution but requiring careful versioning.
+
+### 205. Can an interface hold instance fields?
+
+No ordinary instance fields; interfaces define contracts, though modern features add static members and implementation capabilities.
+
+### 206. What is an explicit interface implementation?
+
+It implements a member accessible through the interface reference, useful to resolve member-name conflicts or hide specialized APIs.
+
+### 207. What is a covariant return?
+
+An override may return a more derived reference type than the base virtual member, where supported by C# and runtime rules.
+
+### 208. What is an init accessor?
+
+It permits setting a property during initialization while restricting reassignment after initialization completes.
+
+### 209. What is an init-only backing field?
+
+The compiler-generated backing field stores the property value; init-only is an API assignment restriction, not deep immutability.
+
+### 210. What is a required init property?
+
+It combines required initialization with init-only assignment, enforcing caller initialization at compile time.
+
+### 211. What is a static local function?
+
+It cannot capture variables from the enclosing scope, making dependencies explicit and sometimes reducing closure allocations.
+
+### 212. What is a local function's advantage over a lambda?
+
+It supports recursion and overloads and can avoid delegate allocation when invoked directly.
+
+### 213. What is a closure allocation?
+
+Captured variables may require a compiler-generated environment object whose lifetime extends until delegates no longer reference it.
+
+### 214. How can closure allocations be reduced?
+
+Avoid unnecessary captures, use static lambdas/local functions, and measure before optimizing.
+
+### 215. What is a static lambda?
+
+It cannot capture outer variables, making accidental closure dependencies a compile-time error.
+
+### 216. What is an expression-bodied member?
+
+It uses `=>` syntax for a single expression-bodied method, property, or other supported member.
+
+### 217. What is a target-typed conditional expression?
+
+In supported language versions, the target type can help infer the result type of conditional branches.
+
+### 218. What is target-typed `new`?
+
+It omits the type after `new` when the surrounding target type determines the constructed type.
+
+### 219. What is a raw interpolated string's brace count?
+
+The number of `$` prefixes determines how many braces begin an interpolation, allowing literal braces in embedded formats.
+
+### 220. How should language-version features be selected?
+
+Align compiler, target framework, analyzer, and deployment support; use `LangVersion` deliberately and verify generated output.
+
+## 16. Advanced Questions (221-270): Design and Generics
+
+### 221. What is substitutability in type design?
+
+A subtype should honor the behavioral expectations of its base contract, not merely share method signatures.
+
+### 222. What is composition over inheritance?
+
+It builds behavior by containing collaborators, reducing rigid coupling to a base-class hierarchy.
+
+### 223. What is dependency inversion?
+
+High-level policy depends on abstractions, and concrete details implement those abstractions at composition boundaries.
+
+### 224. What is an abstraction?
+
+It exposes essential operations while hiding implementation decisions that callers should not depend on.
+
+### 225. What is an anemic domain model?
+
+It places state in domain objects but leaves behavior in services; whether this is problematic depends on domain complexity and design goals.
+
+### 226. What is a rich domain model?
+
+It places invariant-preserving behavior close to the state it governs, rather than allowing arbitrary external mutation.
+
+### 227. What is a value object?
+
+It is an immutable concept defined by its values rather than identity, such as a currency amount or postal address.
+
+### 228. What is an entity?
+
+It is a domain object with identity that remains meaningful as its state changes.
+
+### 229. What is an aggregate root?
+
+It is the entry point for modifying a consistency boundary of related domain objects.
+
+### 230. What is a domain invariant?
+
+It is a rule that must remain true for a valid domain state and should be enforced at an appropriate boundary.
+
+### 231. What is a factory method?
+
+It constructs an object while encapsulating selection or validation logic beyond a simple constructor.
+
+### 232. What is a builder pattern?
+
+It assembles a complex object in explicit steps, often improving readability for optional configuration.
+
+### 233. What is the strategy pattern?
+
+It encapsulates interchangeable algorithms behind a common contract.
+
+### 234. What is the decorator pattern?
+
+It wraps an object to add behavior while preserving its interface.
+
+### 235. What is the adapter pattern?
+
+It translates one interface into another expected by a client.
+
+### 236. What is the observer pattern?
+
+It notifies subscribers when a subject's state or events change; .NET events are a common form.
+
+### 237. What is the mediator pattern?
+
+It routes interactions through a mediator to reduce direct component dependencies, but can obscure simple flows if overused.
+
+### 238. What is the repository pattern?
+
+It abstracts data access behind collection-like operations; avoid duplicating capabilities already well served by a persistence abstraction.
+
+### 239. What is a unit of work?
+
+It coordinates changes and commits them as one logical persistence operation; many ORMs provide this role.
+
+### 240. What is a specification pattern?
+
+It encapsulates a reusable business predicate or query criterion, with care needed for translation and composition.
+
+### 241. What is a generic type constraint?
+
+It restricts type arguments and communicates available operations to generic implementations.
+
+### 242. What is the `unmanaged` constraint?
+
+It requires a type argument to contain no managed references, enabling certain low-level memory operations.
+
+### 243. What is the `notnull` constraint?
+
+It expresses that a type argument should be non-nullable under nullable analysis.
+
+### 244. What is the `allows ref struct` anti-constraint?
+
+In newer C# versions, it permits a generic parameter to be a ref struct while requiring the generic implementation to obey ref-safety restrictions.
+
+### 245. What is generic variance?
+
+It changes assignment compatibility for generic interfaces/delegates in safe input/output positions.
+
+### 246. Why are generic classes invariant?
+
+Allowing covariance/contravariance for mutable classes could permit unsafe reads or writes through incompatible type arguments.
+
+### 247. What is a covariant interface parameter?
+
+An `out` parameter is produced by the interface and supports safe conversion from a more specific type argument to a broader one.
+
+### 248. What is a contravariant interface parameter?
+
+An `in` parameter is consumed by the interface and supports safe conversion from a broader argument type to a narrower one.
+
+### 249. Can variance apply to value types?
+
+Variance conversions require reference-type conversions; value-type generic instantiations do not gain ordinary variance conversions.
+
+### 250. What is an open generic type?
+
+It is a generic type definition with unspecified type parameters, such as `Dictionary<,>`.
+
+### 251. What is a closed generic type?
+
+It is a generic type constructed with concrete type arguments, such as `Dictionary<string, int>`.
+
+### 252. What is a generic method?
+
+It declares type parameters on a method independently of whether its containing type is generic.
+
+### 253. How does generic type inference work?
+
+The compiler infers type arguments from method arguments and constraints where possible; inference can fail when evidence is ambiguous.
+
+### 254. What is a generic static field?
+
+Each constructed generic type has its own static field storage for each closed type argument combination.
+
+### 255. What is a generic singleton pitfall?
+
+A generic singleton static field creates one instance per closed generic type, not one global instance.
+
+### 256. What is a type parameter's default constraint?
+
+The `default` constraint disambiguates override/interface scenarios involving nullable annotations and generic type parameters in newer C#.
+
+### 257. What is an interface constraint?
+
+It guarantees that a type argument implements specified members, allowing constrained calls in generic code.
+
+### 258. What is a base-type constraint?
+
+It limits type arguments to a particular base class hierarchy.
+
+### 259. Why must `new()` appear after other constraints?
+
+C# specifies constraint ordering, with constructor constraints following primary type constraints.
+
+### 260. What is static polymorphism in C# generics?
+
+Static abstract interface members enable compile-time constrained dispatch for operations such as generic numeric algorithms.
+
+### 261. What is a discriminated union in C#?
+
+C# lacks a built-in general algebraic-union type; developers can model closed alternatives with records, enums, and controlled constructors.
+
+### 262. What is a sealed hierarchy?
+
+It restricts derivation so a set of possible runtime types is controlled, aiding exhaustive reasoning.
+
+### 263. What is an invariant-preserving constructor?
+
+It validates or normalizes inputs so every successfully created instance begins in a valid state.
+
+### 264. What is defensive copying?
+
+It copies mutable input/output data to prevent callers from changing internal state through shared references.
+
+### 265. What is a thread-safe immutable type?
+
+It exposes no mutation after construction and safely publishes fully initialized state, simplifying concurrent reads.
+
+### 266. What is an API compatibility break?
+
+It changes source or binary behavior expected by existing consumers, requiring versioning and migration consideration.
+
+### 267. What is binary compatibility?
+
+It is the ability of already-compiled consumers to run against a changed library without recompilation, subject to runtime rules.
+
+### 268. What is source compatibility?
+
+It means consumer source code still compiles against a changed API, even if recompilation is required.
+
+### 269. What is semantic versioning?
+
+It communicates compatibility expectations through version numbers; actual policy should match the package's documented guarantees.
+
+### 270. Why expose abstractions sparingly?
+
+Every abstraction adds maintenance and indirection; create one when it meaningfully improves changeability, testing, or domain clarity.
+
+## 17. Advanced Questions (271-320): Collections and LINQ
+
+### 271. What is an iterator block?
+
+It is a method using `yield` that the compiler transforms into an enumerator state machine.
+
+### 272. When does an iterator method execute?
+
+Its body generally begins when enumeration starts, not when the enumerable is first returned.
+
+### 273. What happens if an iterator is enumerated twice?
+
+It commonly executes its body twice and may repeat side effects or database/network work.
+
+### 274. What is a lazy sequence?
+
+It computes or retrieves elements as enumeration requests them rather than materializing all values up front.
+
+### 275. What is eager materialization?
+
+It immediately consumes a sequence into a collection such as `List<T>` or an array.
+
+### 276. What is deferred LINQ execution risk?
+
+Repeated enumeration may rerun expensive work, observe changed data, or repeat side effects.
+
+### 277. What is an `IQueryable<T>` provider?
+
+It interprets an expression tree and executes or translates it for a backing data source.
+
+### 278. What is an expression tree translation boundary?
+
+It is the point where a provider can no longer translate an expression and execution must be changed or moved client-side.
+
+### 279. Why avoid returning `IQueryable<T>` across layers?
+
+It leaks provider execution and deferred behavior, making data access, lifetime, and query translation boundaries unclear.
+
+### 280. What does `AsEnumerable` do?
+
+It changes subsequent extension-method binding to LINQ-to-Objects without materializing the sequence itself.
+
+### 281. What does `ToList` do?
+
+It enumerates the sequence immediately and stores results in a list.
+
+### 282. What does `ToLookup` do?
+
+It materializes a one-to-many keyed lookup, allowing multiple values for a key.
+
+### 283. What does `GroupBy` do in LINQ?
+
+It groups elements by a key; execution and memory behavior depend on the source and overload.
+
+### 284. What is `GroupJoin`?
+
+It performs a grouped join, associating each outer element with matching inner elements.
+
+### 285. What is `Join`?
+
+It pairs elements whose selected keys match according to an equality comparer.
+
+### 286. How can a left join be expressed in LINQ?
+
+Use `GroupJoin` followed by `SelectMany` and `DefaultIfEmpty`, or an equivalent query expression.
+
+### 287. What does `Zip` do?
+
+It combines corresponding elements from sequences until the shorter sequence ends.
+
+### 288. What does `Append` do?
+
+It returns a sequence with one value appended; it is usually deferred until enumeration.
+
+### 289. What does `Prepend` do?
+
+It returns a sequence with one value before the source sequence.
+
+### 290. What is `DistinctBy`?
+
+It returns one element per distinct selected key in supported .NET versions.
+
+### 291. What is a stable LINQ sort?
+
+LINQ-to-Objects ordering is stable, preserving source order for equal keys; provider translations may differ.
+
+### 292. What does `ThenBy` do?
+
+It adds a secondary ordering to an existing `OrderBy` sequence.
+
+### 293. What is the difference between `OrderBy` and `ThenBy`?
+
+`OrderBy` establishes a new primary order; `ThenBy` extends the prior ordering as a tie-breaker.
+
+### 294. What does `Aggregate` do?
+
+It folds a sequence into an accumulated result using a supplied function.
+
+### 295. Why prefer named aggregate methods over `Aggregate`?
+
+Methods like `Sum`, `Count`, or `Any` communicate intent more clearly and may be optimized by providers.
+
+### 296. What does `Any` do?
+
+It tests whether a sequence contains an element or any element satisfying a predicate, often short-circuiting.
+
+### 297. What does `All` do?
+
+It tests whether every element satisfies a predicate; for an empty sequence, it returns true.
+
+### 298. What does `SequenceEqual` compare?
+
+It compares two sequences element-by-element using a comparer, including order and length.
+
+### 299. What is LINQ query syntax?
+
+It is SQL-like syntax compiled into method calls such as `Where`, `Select`, and `Join`.
+
+### 300. What is LINQ method syntax?
+
+It chains extension methods and lambdas to compose queries.
+
+### 301. Does query syntax offer additional execution capabilities?
+
+No; it is translated to method calls, though it can express joins and query shapes more readably.
+
+### 302. What is `IAsyncEnumerable<T>`?
+
+It represents a sequence whose elements are asynchronously produced and consumed with `await foreach`.
+
+### 303. What does `await foreach` do?
+
+It asynchronously requests elements from an async enumerator and disposes that enumerator when iteration ends.
+
+### 304. What does `yield return` do in an async iterator?
+
+It asynchronously yields sequence elements from an `async IAsyncEnumerable<T>` method.
+
+### 305. How does cancellation work in async streams?
+
+Pass or annotate a cancellation token and ensure the producer observes it during enumeration.
+
+### 306. What is a collection's equality comparer?
+
+It defines key equality and hashing for dictionaries and sets, such as ordinal-ignore-case string comparison.
+
+### 307. Why can mutable dictionary keys break lookups?
+
+Changing fields used by equality or hashing moves the logical key to a different hash location without updating the collection.
+
+### 308. What is a sorted dictionary?
+
+It stores key/value pairs ordered by a comparer, with logarithmic operations commonly provided by a balanced tree.
+
+### 309. What is `SortedList<TKey,TValue>`?
+
+It stores sorted keys and values in indexed arrays; lookup is efficient but insertion/removal can shift elements.
+
+### 310. What is `PriorityQueue<TElement,TPriority>`?
+
+It dequeues elements by priority using a heap; equal-priority ordering is not generally stable.
+
+### 311. What is an immutable collection?
+
+It returns new collection values for updates while prior instances remain unchanged.
+
+### 312. What is a frozen collection?
+
+It is an immutable collection optimized for lookup-heavy use after a one-time construction cost in supported .NET versions.
+
+### 313. What is `ArrayPool<T>`?
+
+It rents and returns reusable arrays to reduce allocation pressure; returned arrays must not be used afterward.
+
+### 314. What is `MemoryPool<T>`?
+
+It rents disposable memory owners, often used when memory size and lifetime are managed explicitly.
+
+### 315. What is a bounded collection?
+
+It limits capacity or queued work, providing backpressure or memory protection.
+
+### 316. What is a producer-consumer collection?
+
+It coordinates producers and consumers, often with thread-safe queueing and optional bounded capacity.
+
+### 317. What is `Channel<T>`?
+
+It is an asynchronous producer-consumer primitive with configurable bounded/unbounded buffering.
+
+### 318. What is backpressure?
+
+It is controlling production when consumers cannot keep up, preventing unbounded resource growth.
+
+### 319. What is a collection view?
+
+It exposes a filtered, projected, or read-only perspective over data, often without copying all source elements.
+
+### 320. How do you choose a collection type?
+
+Choose based on ordering, mutation, lookup, concurrency, memory, and equality semantics rather than habit.
+
+## 18. Advanced Questions (321-370): Async and Concurrency
+
+### 321. What is a task state machine?
+
+The compiler transforms an async method into a state machine that stores state across await suspension points.
+
+### 322. What is an awaiter?
+
+It implements the protocol used by `await` to determine completion, register continuation, and retrieve a result.
+
+### 323. What makes a type awaitable?
+
+It exposes a compatible `GetAwaiter` pattern whose awaiter provides completion, continuation, and result members.
+
+### 324. What is a custom awaitable?
+
+It implements the awaiter pattern to customize asynchronous completion, though ordinary Tasks are preferable unless there is a clear need.
+
+### 325. What is a synchronization context?
+
+It represents an execution context that can schedule continuations, historically important in UI frameworks.
+
+### 326. What is a task scheduler?
+
+It controls where and how Tasks are queued and executed; most application code uses the default scheduler.
+
+### 327. What is continuation capture?
+
+An await may capture a context for its continuation; `ConfigureAwait(false)` can opt out where appropriate.
+
+### 328. What does `Task.Run` do?
+
+It queues CPU-bound work to the thread pool; it should not wrap naturally asynchronous I/O just to appear asynchronous.
+
+### 329. What is thread-pool starvation?
+
+It occurs when blocked or excessive work exhausts available pool threads, delaying unrelated tasks.
+
+### 330. What is sync-over-async?
+
+It blocks on asynchronous work via `.Result` or `.Wait()`, risking deadlock and thread-pool starvation.
+
+### 331. What is fire-and-forget work?
+
+It starts work without awaiting/observing completion, risking lost exceptions and premature process shutdown.
+
+### 332. How should background work be hosted?
+
+Use a managed hosted service or durable job system with cancellation, logging, retries, and shutdown behavior.
+
+### 333. What is a `ValueTask<T>`?
+
+It can avoid allocations when results often complete synchronously, but has usage constraints and should be introduced after measurement.
+
+### 334. Can a `ValueTask` be awaited multiple times?
+
+Not generally; treat it as a single-consumption awaitable unless its documented source permits reuse.
+
+### 335. What is `TaskCompletionSource<T>`?
+
+It bridges callback-based or externally signaled completion into a Task; configure continuations and completion ownership carefully.
+
+### 336. Why use `RunContinuationsAsynchronously`?
+
+It prevents continuations from running inline on the thread completing a source, reducing reentrancy and lock-related hazards.
+
+### 337. What is cooperative cancellation?
+
+Code observes a token and exits at safe points rather than being forcibly terminated.
+
+### 338. What is linked cancellation?
+
+It creates a token source canceled when any of several source tokens are canceled.
+
+### 339. What is cancellation timeout?
+
+It requests cancellation after a deadline; cancellation still requires the operation to cooperate.
+
+### 340. What is a cancellation race?
+
+Completion and cancellation may happen nearly simultaneously; callers should handle whichever outcome wins according to the API contract.
+
+### 341. What is a semaphore?
+
+It limits concurrent access to a resource using a permit count.
+
+### 342. What is `SemaphoreSlim`?
+
+It is a lightweight semaphore with async wait support for coordinating in-process operations.
+
+### 343. What is a reader-writer lock?
+
+It allows multiple concurrent readers or exclusive writing, useful only when its overhead and fairness match the workload.
+
+### 344. What is `Monitor`?
+
+It provides mutual exclusion and condition signaling; C# `lock` is built on monitor semantics in common implementations.
+
+### 345. What is a volatile field?
+
+It constrains certain reads/writes for visibility and ordering; it does not make compound operations atomic.
+
+### 346. What is `Interlocked`?
+
+It provides atomic operations such as increment, exchange, and compare-exchange for shared values.
+
+### 347. What is compare-exchange?
+
+It atomically updates a value only if it equals an expected value, enabling lock-free algorithms when used carefully.
+
+### 348. What is a memory barrier?
+
+It constrains reordering and visibility of memory operations across threads.
+
+### 349. What is false sharing?
+
+Independent variables on the same cache line can cause cache-coherence contention between processor cores.
+
+### 350. What is lock contention?
+
+It occurs when many threads compete for the same lock and spend time waiting rather than doing work.
+
+### 351. What is a reentrant lock?
+
+It allows the owning thread to acquire the same lock repeatedly, with matching release count requirements.
+
+### 352. What is lock ordering?
+
+It is acquiring multiple locks in a globally consistent order to reduce deadlock cycles.
+
+### 353. What is a concurrent dictionary's `GetOrAdd` caveat?
+
+The value factory may execute more than once under contention even though only one result is stored.
+
+### 354. What is an atomic operation?
+
+It appears indivisible to concurrent observers for the supported operation and memory location.
+
+### 355. What is thread affinity?
+
+It is a requirement that work execute on a particular thread, common for UI controls and some native APIs.
+
+### 356. What is a dedicated thread useful for?
+
+It can serve long-blocking or thread-affine work, but increases resource cost compared with asynchronous I/O.
+
+### 357. What is parallel LINQ?
+
+PLINQ partitions sequence work across threads, helping CPU-bound independent operations when overhead and ordering permit.
+
+### 358. What is the `Parallel` class?
+
+It provides parallel loops and operations for CPU-bound workloads; use cancellation and avoid shared mutable state.
+
+### 359. What is a data race?
+
+It is unsynchronized concurrent access where at least one operation writes, producing nondeterministic behavior.
+
+### 360. What is thread-safe code?
+
+It preserves its invariants under concurrent access through immutability, synchronization, or safe ownership.
+
+### 361. What is a thread-safe singleton?
+
+It initializes exactly once safely under concurrency, using language/runtime-supported initialization patterns.
+
+### 362. What is `Lazy<T>`?
+
+It defers value creation until access and offers configurable thread-safety modes.
+
+### 363. What is a barrier?
+
+It synchronizes multiple participating threads at a phase boundary.
+
+### 364. What is a countdown event?
+
+It signals when a configured number of operations have completed.
+
+### 365. What is a reader-writer channel?
+
+Channels coordinate asynchronous producers and consumers; they do not imply a fixed reader/writer lock model.
+
+### 366. What is an async lock?
+
+It is a coordination abstraction that allows asynchronous waiting without holding a thread-blocking monitor across `await`.
+
+### 367. Why not use `lock` around `await`?
+
+C# forbids awaiting in a `lock` body because monitor ownership is thread-bound and continuation may resume elsewhere.
+
+### 368. What is a starvation problem?
+
+A thread or operation waits indefinitely because others continually receive access to needed resources.
+
+### 369. What is fairness in synchronization?
+
+It describes whether waiting participants receive access in an equitable order; many primitives do not guarantee strict fairness.
+
+### 370. How do you test concurrent code?
+
+Use deterministic coordination primitives and invariant assertions, minimize timing sleeps, and supplement with stress testing.
+
+## 19. Advanced Questions (371-420): Runtime and Performance
+
+### 371. What is tiered compilation?
+
+The JIT can initially compile quickly and later recompile hot methods with stronger optimizations.
+
+### 372. What is tiered PGO?
+
+It uses runtime profiling feedback to guide optimization decisions for frequently executed code.
+
+### 373. What is ReadyToRun?
+
+It precompiles portions of assemblies to native code to improve startup while retaining runtime/JIT capabilities.
+
+### 374. What is Native AOT?
+
+It compiles an application ahead of time to native code and imposes constraints on reflection and dynamic code.
+
+### 375. What is a JIT intrinsic?
+
+It is a method the JIT recognizes and replaces with specialized machine instructions where supported.
+
+### 376. What is inlining?
+
+The JIT substitutes a method body at a call site to reduce call overhead and enable further optimization.
+
+### 377. What is devirtualization?
+
+The JIT proves a virtual call target and turns it into a direct call or inlineable operation.
+
+### 378. What is a managed heap generation?
+
+It categorizes objects by collection age; short-lived objects are collected more frequently than long-lived ones.
+
+### 379. What is a GC root?
+
+It is a reference source, such as a stack/register, static field, or handle, from which reachability is traced.
+
+### 380. What is a pinned object?
+
+It is an object the GC cannot move while pinned, often for native interop; prolonged pinning can fragment memory.
+
+### 381. What is a finalizable object cost?
+
+It requires finalization processing and usually survives an additional collection before memory is reclaimed.
+
+### 382. What is a `SafeHandle`?
+
+It is a robust wrapper for native handles that provides reliable release and integrates with finalization safely.
+
+### 383. What is a memory leak in managed code?
+
+It is unnecessary object retention through reachable references, event subscriptions, caches, or static state.
+
+### 384. What is a LOH compaction?
+
+It compacts large-object heap segments under supported runtime policies, with potentially significant pause costs.
+
+### 385. What is server GC?
+
+It configures garbage collection for throughput-oriented server workloads, commonly using multiple heaps.
+
+### 386. What is workstation GC?
+
+It configures GC behavior often suited to interactive applications, balancing latency and resource use.
+
+### 387. What is background GC?
+
+It performs some collection work concurrently with application threads, reducing pauses with trade-offs.
+
+### 388. What is a GC pause?
+
+It is time during which managed threads are suspended for collection phases; latency depends on workload and runtime.
+
+### 389. What is allocation pressure?
+
+It is the rate and volume of allocations, which can trigger more frequent collections and increase CPU use.
+
+### 390. What is an allocation-free hot path?
+
+It minimizes transient allocations in frequently executed code, but should be optimized only after profiling.
+
+### 391. What is object pooling?
+
+It reuses objects to reduce allocations; pooling can retain memory and introduce reset/thread-safety bugs.
+
+### 392. What is `ArrayPool<T>.Shared`?
+
+It is a shared array pool for renting reusable arrays, with no guarantee of zeroed contents unless requested.
+
+### 393. What is stack allocation's risk?
+
+Large stack allocations can exhaust thread stacks; stack capacity is limited and often smaller than heap capacity.
+
+### 394. What is UTF-8 string support in modern .NET?
+
+Modern APIs include UTF-8-oriented representations and overloads, reducing conversions for byte-oriented protocols where appropriate.
+
+### 395. What is `GC.GetAllocatedBytesForCurrentThread`?
+
+It reports managed allocation bytes for the current thread, useful for focused measurement but not a complete memory profile.
+
+### 396. What is BenchmarkDotNet?
+
+It is a benchmarking library that manages warmup, repeated measurements, and environment reporting for .NET microbenchmarks.
+
+### 397. Why are microbenchmarks misleading?
+
+They may omit real workload, runtime warmup, I/O, contention, and deployment effects.
+
+### 398. What is profiling?
+
+It samples or traces execution to identify CPU, allocation, contention, or I/O bottlenecks in representative runs.
+
+### 399. What are EventCounters?
+
+They expose runtime or application metrics through .NET diagnostics infrastructure.
+
+### 400. What is EventPipe?
+
+It is a cross-platform diagnostics transport for collecting runtime events, traces, and counters.
+
+### 401. What is `dotnet-trace`?
+
+It collects EventPipe traces from .NET processes for runtime and application diagnostics.
+
+### 402. What is `dotnet-counters`?
+
+It monitors live runtime and application counters exposed through diagnostics.
+
+### 403. What is `dotnet-dump`?
+
+It captures or analyzes process dumps for managed diagnostics, subject to platform and runtime support.
+
+### 404. What is a core dump?
+
+It is a process memory snapshot used to investigate crashes, hangs, or state, and may contain sensitive data.
+
+### 405. What is tiered PGO's deployment concern?
+
+Its effectiveness depends on warmup and workload representativeness; cold-start and short-lived processes may benefit differently.
+
+### 406. What is an allocation profile?
+
+It attributes memory allocations to call paths, helping find high-volume transient objects.
+
+### 407. What is a stack trace?
+
+It records the call path associated with an exception or sampled execution point.
+
+### 408. What is a minidump?
+
+It is a reduced process dump containing selected state; its usefulness depends on included memory and symbols.
+
+### 409. What is a symbol file?
+
+It maps compiled instructions to source-level names and lines, essential for readable diagnostics.
+
+### 410. What is a PDB?
+
+It is a program database file containing debug symbols and metadata for source-level debugging.
+
+### 411. What is trimming's reflection risk?
+
+The trimmer may remove members accessed only via reflection unless dependencies are annotated or preserved.
+
+### 412. What is dynamic code generation?
+
+It emits executable code at runtime, which may be unsupported or restricted under Native AOT and trimming.
+
+### 413. What is a source generator?
+
+It runs during compilation to generate source code from syntax or metadata without runtime reflection.
+
+### 414. What is an analyzer?
+
+It statically inspects code and can report diagnostics or offer fixes during development/build.
+
+### 415. What is a Roslyn code fix?
+
+It is an IDE action associated with an analyzer diagnostic that transforms source code.
+
+### 416. What is incremental source generation?
+
+It uses an incremental pipeline to cache generator results and minimize repeated compilation work.
+
+### 417. What is a runtime identifier?
+
+It identifies a target platform/architecture for runtime-specific restore or publishing, such as a platform-specific RID.
+
+### 418. What is crossgen?
+
+It refers to ahead-of-time compilation tooling for .NET assemblies, with modern workflows exposed through ReadyToRun publishing.
+
+### 419. What is a native dependency?
+
+It is an unmanaged library required by an application and must be packaged/resolved for each target platform.
+
+### 420. How do you tune GC?
+
+Measure allocation, latency, and throughput first; select runtime GC settings based on workload rather than guessing.
+
+## 20. Advanced Questions (421-460): Interop and Security
+
+### 421. What is P/Invoke?
+
+Platform Invocation Services call exported functions in native libraries from managed code.
+
+### 422. What is marshalling?
+
+It converts data representations between managed and unmanaged code across an interop boundary.
+
+### 423. What is a calling convention?
+
+It defines how arguments and return values cross a native function boundary, including stack cleanup and register usage.
+
+### 424. What is `DllImport`?
+
+It declares a native function import; newer interop source-generation patterns may improve AOT and performance support.
+
+### 425. What is `LibraryImport`?
+
+It is a source-generated P/Invoke mechanism available in modern .NET, reducing runtime marshalling work in supported cases.
+
+### 426. What is COM interop?
+
+It bridges .NET code with Component Object Model components, primarily relevant to Windows interoperability.
+
+### 427. What is COM callable wrapper?
+
+It exposes a managed object to COM clients through a runtime-generated interop wrapper.
+
+### 428. What is runtime callable wrapper?
+
+It represents a COM object to managed code and handles interop services.
+
+### 429. What is `SafeHandle` interop benefit?
+
+It provides reliable native-handle ownership and cleanup across exceptions and finalization.
+
+### 430. What is `MarshalAs`?
+
+It specifies how a managed value is represented when marshalled to native code.
+
+### 431. What is `StructLayout`?
+
+It controls field layout for interop or binary compatibility scenarios.
+
+### 432. What is blittable data?
+
+It has compatible managed and unmanaged representations and can often cross interop without field-by-field conversion.
+
+### 433. What is unsafe pointer arithmetic risk?
+
+Incorrect bounds or lifetime assumptions can corrupt memory or crash the process.
+
+### 434. What is a cryptographic random number generator?
+
+It produces unpredictable values for security uses; do not use `System.Random` for keys, tokens, or secrets.
+
+### 435. How should passwords be stored?
+
+Use a vetted password-hashing algorithm with salts and appropriate work factors, not reversible encryption or plain hashes.
+
+### 436. What is constant-time comparison?
+
+It compares secrets without timing differences proportional to matching prefixes, reducing timing side channels.
+
+### 437. What is secret zeroization?
+
+It attempts to overwrite sensitive memory, though managed copies and runtime behavior make guarantees limited.
+
+### 438. What is TLS certificate validation?
+
+It verifies server identity and trust chain; disabling validation exposes communication to interception.
+
+### 439. What is secure serialization?
+
+It validates inputs, restricts type activation, and avoids unsafe polymorphic deserialization of untrusted payloads.
+
+### 440. Why is `BinaryFormatter` unsafe?
+
+It can instantiate attacker-controlled object graphs and is obsolete/disabled in modern .NET; use safer formats.
+
+### 441. What is JSON polymorphic deserialization risk?
+
+Unrestricted type selection can instantiate unintended types; use explicit discriminators and allowlisted models.
+
+### 442. What is path traversal?
+
+It uses malicious path segments to escape an intended directory; canonicalize and enforce an allowed root.
+
+### 443. What is command injection?
+
+It changes an invoked process's command semantics using untrusted input; prefer argument APIs and validate permitted values.
+
+### 444. What is SQL injection prevention in .NET?
+
+Use database parameters and never concatenate untrusted values into SQL command text.
+
+### 445. What is an authorization policy?
+
+It expresses access requirements evaluated by an application or framework authorization system.
+
+### 446. What is the principle of least privilege?
+
+Grant only the permissions necessary to perform a specific task.
+
+### 447. What is a secret store?
+
+It securely manages credentials and keys outside source code and ordinary configuration.
+
+### 448. What is security patch management?
+
+It tracks and updates vulnerable runtimes and dependencies through a tested deployment process.
+
+### 449. What is an attack surface?
+
+It is the set of interfaces and behaviors an attacker could reach, including network endpoints, parsers, and native interop.
+
+### 450. What is defense in depth?
+
+It layers independent security controls so one failure does not expose the entire system.
+
+### 451. What is an untrusted deserialization boundary?
+
+It is any point where external bytes become objects; validate schema and avoid unsafe type activation.
+
+### 452. What is cryptographic agility?
+
+It is the ability to update algorithms and key sizes as security guidance changes without redesigning the whole system.
+
+### 453. What is key rotation?
+
+It replaces cryptographic keys according to a controlled lifecycle while preserving necessary decryption of prior data.
+
+### 454. What is a secure random token?
+
+It is generated with a cryptographic RNG, sufficient entropy, limited lifetime, and protected storage/transport.
+
+### 455. What is a replay attack?
+
+It resubmits a previously valid message; nonces, timestamps, expiry, and idempotency controls can reduce risk.
+
+### 456. What is input validation?
+
+It checks that untrusted values meet type, range, format, and business constraints before use.
+
+### 457. What is output encoding?
+
+It encodes data for the output context, preventing interpretation as executable markup or commands.
+
+### 458. What is a dependency vulnerability scan?
+
+It identifies known vulnerable package versions; findings require prioritization and verified remediation.
+
+### 459. What is a threat model?
+
+It identifies assets, trust boundaries, attackers, threats, and mitigations before or during system design.
+
+### 460. How should a .NET application handle a security exception?
+
+Fail safely, log useful non-sensitive diagnostics, return an appropriate response, and avoid exposing secrets or stack traces.
+
+## 21. Advanced Questions (461-500): Testing and Scenarios
+
+### 461. What is a test double?
+
+A substitute dependency used to control or observe interactions in a test, including stubs, fakes, spies, and mocks.
+
+### 462. What is a fake?
+
+A lightweight working implementation used in tests, such as an in-memory repository.
+
+### 463. What is a stub?
+
+It returns predetermined values to support a test's setup.
+
+### 464. What is a mock?
+
+It verifies expected interactions, though behavior-focused assertions are often more resilient.
+
+### 465. What is a contract test?
+
+It verifies that independently developed components agree on an interface or message contract.
+
+### 466. What is property-based testing?
+
+It generates many inputs and checks general properties rather than only hand-picked examples.
+
+### 467. What is fuzz testing?
+
+It supplies unexpected or malformed inputs to find crashes, hangs, or security defects.
+
+### 468. What is mutation testing?
+
+It changes code deliberately to see whether tests detect the altered behavior.
+
+### 469. What is a flaky test?
+
+A test whose outcome varies across runs due to timing, shared state, environment, or nondeterminism.
+
+### 470. How can test time be controlled?
+
+Inject a clock abstraction or use a testable time provider rather than reading global system time everywhere.
+
+### 471. How do you test asynchronous methods?
+
+Await the returned task and assert outcomes; never use `async void` for ordinary testable operations.
+
+### 472. How do you test cancellation?
+
+Cancel a token source, await the operation, and verify the documented cancellation outcome and cleanup.
+
+### 473. How do you test a race condition?
+
+Use barriers or task completion sources to force specific interleavings instead of relying on sleeps.
+
+### 474. What is integration testing?
+
+It verifies collaboration among real components such as database, HTTP host, serialization, and configuration.
+
+### 475. What is an in-memory database testing limitation?
+
+It may not reproduce relational constraints, transactions, SQL translation, or provider behavior.
+
+### 476. What is a test container?
+
+A disposable containerized dependency, such as a real database, used to improve integration-test fidelity.
+
+### 477. What is a golden-file test?
+
+It compares output with a checked-in expected artifact; updates require review to avoid blindly accepting regressions.
+
+### 478. What is code coverage?
+
+It measures which code executed during tests, not whether assertions are sufficient or behavior is correct.
+
+### 479. What is a regression test?
+
+It captures a previously observed defect so future changes detect its recurrence.
+
+### 480. What is a smoke test?
+
+It quickly verifies critical application startup and basic operations after deployment.
+
+### 481. How do you debug a production-only issue?
+
+Collect safe correlated logs, metrics, traces, runtime/version/config details, and a minimal reproduction without exposing sensitive data.
+
+### 482. What is structured exception logging?
+
+It records exception details and contextual properties in queryable fields while avoiding secret leakage.
+
+### 483. What is distributed tracing?
+
+It links operations across services using trace and span context, helping diagnose latency and failures.
+
+### 484. What is a correlation identifier?
+
+It associates related logs and requests across system boundaries.
+
+### 485. What is a health check?
+
+It reports application liveness/readiness; dependency checks should not cause inappropriate restart loops.
+
+### 486. What is readiness versus liveness?
+
+Readiness indicates whether traffic should be sent; liveness indicates whether the process should be restarted.
+
+### 487. What is graceful degradation?
+
+It preserves core functionality when optional dependencies or features fail.
+
+### 488. What is a circuit breaker?
+
+It temporarily blocks calls to a failing dependency to prevent cascading resource exhaustion.
+
+### 489. What is a retry storm?
+
+Many clients retry simultaneously and intensify an outage; use bounded retries, backoff, jitter, and budgets.
+
+### 490. What is exponential backoff?
+
+It increases retry delays exponentially, often with jitter to reduce synchronized retries.
+
+### 491. What is idempotency in an API?
+
+Repeating a request produces the same intended result, making safe retries possible.
+
+### 492. What is a graceful deployment?
+
+It drains traffic, handles in-flight work, starts compatible versions, and supports rollback.
+
+### 493. What is configuration validation?
+
+It checks required settings and ranges at startup so misconfiguration fails clearly before serving traffic.
+
+### 494. What is a feature toggle risk?
+
+Unmanaged flags accumulate complexity and may expose functionality without server-side authorization.
+
+### 495. What is a backward-compatible API change?
+
+It preserves existing consumer behavior, such as adding optional fields without changing established semantics.
+
+### 496. How should an API evolve?
+
+Add compatible capabilities, monitor usage, deprecate deliberately, and version breaking changes with migration guidance.
+
+### 497. What is a memory dump privacy risk?
+
+Dumps can contain credentials, personal data, and request content; restrict access and retention.
+
+### 498. What is a deployment rollback consideration?
+
+Database changes and external side effects may not be reversible, so use backward-compatible migration phases.
+
+### 499. How do you choose between sync and async APIs?
+
+Use async for naturally asynchronous I/O and composable nonblocking paths; keep CPU work synchronous unless parallel execution is justified.
+
+### 500. How do you answer an advanced C# design question?
+
+Clarify constraints, explain trade-offs, state runtime/version assumptions, and demonstrate correctness with a focused example or test.
 
 ## Final interview preparation tips
 
